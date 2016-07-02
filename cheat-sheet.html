@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+<link href="cheat-sheet.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<h1>Sigmoid Function</h1>
+The sigmoid function is useful because it's like a smoothed out step function. At `sigma(0) = 0.5`, `sigma(x)` for very negative numbers like `-5` is `~~ 0` and `sigma(x)` for very large numbers like `5` is `~~ 1`.
+
+<p class="eq numbered">
+    `sigma(x) = 1/(1+e^-x)`
+</p>
+
+<h2>Derivative of `sigma(x)`</h2>
+<p class="eq">`d/dx(sigma(x)) = d/dx((1+e^-x)^-1)`</p>
+<p class="eq">`= -(1+e^-x)^-2*(-e^-x)`</p>
+<p class="eq">`= (e^-x)/((1+e^-x)*(1+e^-x))`</p>
+<p class="eq">`= 1/(1+e^-x) * (e^-x)/(1+e^-x)`</p>
+<p class="eq">`= sigma(x) * (e^-x)/(1+e^-x)`</p>
+<p class="eq">`= sigma(x) * [(1 + e^-x)/(1+e^-x) - 1/(1+e^-x)]`</p>
+<p class="eq numbered">`= sigma(x) * (1 - sigma(x))`</p>
+
+<h1>Digit Classification</h1>
+Input is a 28 x 28 = 728-dimensional vector `vec x`.<br>
+Output is 10-dimensional vector `vec y`.
+
+<h2>Cost function</h2>
+We need a cost function that describes how far off a certain set of weights and biases for our output neurons `vec y` are. For now, define this as
+<p class="eq numbered">`C(vec w, b) = 1/(2n) sum_(vec x) ||vec y(vec x) - vec a||^2`</p>
+
+<h2>Minimization</h2>
+How do we minimize the cost function `C`? Well, suppose we generalize `C` as a function of many variables: `C(v_1, v_2, ..., v_n)`. Calculus tells us that changes in `C`, `Delta C`, can be approximated by taking the partial derivative of `C` with respect to each variable, multiplying by the amount that variable changed, and adding them up.
+
+<p class="eq numbered">`Delta C ~~ (del C)/(del v_1)*Delta v_1 + (del C)/(del v_2)*Delta v_2 + cdots + (del C)/(del v_n)*Delta v_n`</p>
+
+Minimizing `C` is equivalent to finding the most negative `Delta C` value possible. To do this, we'll be using an algorithm called <strong>gradient descent</strong>. But first, a few more formulations to set up the algorithm.<br>
+
+<h2>Input vector</h2>
+<p class="eq numbered">`Delta vec v = < Delta v_1, Delta v_2, ..., Delta v_n >`</p>
+
+<h2>Gradient vector</h2>
+The gradient vector `grad C` is expressed as
+
+<p class="eq numbered">`grad C = < (del C)/(del v_1), (del C)/(del v_2), ..., (del C)/(del v_n) >`</p>
+    
+Combining the above equations we get
+    
+<p class="eq numbered">`Delta C ~~ grad C * Delta vec v`</p>
+
+So how do we choose a `Delta vec v` to make `Delta C` negative? Well, suppose we choose
+
+<p class="eq numbered">`Delta vec v = -eta * grad C`</p>
+
+where `eta` is a small positive parameter known as the <strong>learning rate</strong>. If we swap this into the above equations we get
+
+<p class="eq">`Delta C ~~ grad C * Delta vec v`</p>
+<p class="eq">`~~ grad C * -eta * grad C`</p>
+<p class="eq">`~~ -eta * ||grad C||^2`</p>
+
+Since it's always true that `||grad C||^2 >= 0`, we are guaranteed to have `Delta C < 0` thanks to the `-eta` out front. The <strong>gradient descent</strong> algorithm will thus boil down to choosing a new value `vec v_(\n\e\w)` based on a previous value `vec v_(old)` such that
+
+<p class="eq numbered">`vec v_(\n\e\w) = vec v_(old) - eta * grad C`</p>
+
+It is important that `eta` be a value small enough to still make the approximiation in Equation 7 valid but not so small that learning takes exorbitantly long.
+
+<h2>Cost Function Gradient</h2>
+<p class="eq numbered">
+    `Delta C ~~ grad C * Delta v`
+</p>
+
+<script
+src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"></script>
+</body>
+</html>

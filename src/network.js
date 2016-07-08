@@ -2,7 +2,6 @@
 
 let jStat = require('jstat').jStat
 let sprintf = require('sprintf').sprintf
-let math = require('mathjs')
 
 function sigmoid(z) {
     if (typeof z === 'number') {
@@ -99,15 +98,10 @@ class Network {
             console.log(`${printMatrix(this.weights[i], 'w = ')}\n${printMatrix(a, 'x = ')}\n${printMatrix(this.biases[i], 'b = ')}`)
             let b = this.biases[i]
             let w = this.weights[i]
-            // let wa = math.multiply(w, a).map(m => [m])
-            // console.log(printMatrix(wa, 'wa = '))
-            // a = math.add(wa, b)
-            // a = a.map(row => row[0])
-            let wa = jStat.multiply(w, a) // .add(b)
+            let wa = jStat.multiply(w, a)
             a = jStat(wa).add(b).alter(el => sigmoid(el))
             console.log(printMatrix(a, 'a = '))
-            // console.log(jStat(w).multiply(a))
-            // console.log(printMatrix(a, 'a = '))
+            console.log()
         }
 
         return a

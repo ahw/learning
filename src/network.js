@@ -13,16 +13,41 @@ function sigmoid(z) {
 }
 
 function printMatrix(m, label) {
+    if (m instanceof jStat) {
+        m = Array.prototype.slice.call(m)
+    }
+
     label = label || ""
     let pad = label.split("").map(s => ' ').join("")
     return m.map((row, i) => {
         if (!Array.isArray(row)) {
-            row = [row]
+            return `${(i ? pad : label)} ${row} <-- warning: this is not a matrix`
         }
+
         return (i ? pad : label) + '[ ' + row.map(e => sprintf('%0.03f', e)).join(', ') + ' ]'
     }).join('\n')
 }
 
+function isMatrix(m) {
+    // Returns true if m is an array and it's first element is also an
+    // array. It would be more thorough to do something like m.every(e =>
+    // Array.isArray(e)) but this will probably be faster and just as good
+    // in practice.
+    return Array.isArray(m) && Array.isArray(m[0])
+}
+
+function arrayToMatrix(arr, type) {
+    // Converts a simple array to a matrix. The "type" argument describes
+    // whether the result should look like a column vector or a row vector.
+    type = type || 'column'
+    if (type === 'column') {
+        return arr.map(e => [e])
+    } else if (type === 'row') {
+        return [arr]
+    } else {
+        throw new Error(`Unknown matrix type ${type}`)
+    }
+}
 
 class Network {
 
@@ -64,17 +89,23 @@ class Network {
     }
 
     feedforward(a) {
+        if (!isMatrix(a)) {
+            // Convert a to a column vector
+            a = arrayToMatrix(a, 'column')
+        }
+
         for (let i = 0; i < this.sizes.length - 1; i++) {
             console.log(`Iteration ${i+1}`)
             console.log(`${printMatrix(this.weights[i], 'w = ')}\n${printMatrix(a, 'x = ')}\n${printMatrix(this.biases[i], 'b = ')}`)
             let b = this.biases[i]
             let w = this.weights[i]
-            let wa = math.multiply(w, a).map(m => [m])
-            console.log(printMatrix(wa, 'wa = '))
-            a = math.add(wa, b)
-            a = a.map(row => row[0])
+            // let wa = math.multiply(w, a).map(m => [m])
+            // console.log(printMatrix(wa, 'wa = '))
+            // a = math.add(wa, b)
+            // a = a.map(row => row[0])
+            let wa = jStat.multiply(w, a) // .add(b)
+            a = jStat(wa).add(b).alter(el => sigmoid(el))
             console.log(printMatrix(a, 'a = '))
-            // a = sigmoid(jStat(w).multiply(a).add(b))
             // console.log(jStat(w).multiply(a))
             // console.log(printMatrix(a, 'a = '))
         }
@@ -84,9 +115,9 @@ class Network {
 }
 
 let n = new Network([2, 3, 4, 2])
-n.feedforward([2, 3])
-console.log('biases')
-console.log(n.biases)
-console.log('weights')
-console.log(n.weights)
-console.log(sigmoid([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+n.feedforward([[2], [3]])
+// console.log('biases')
+// console.log(n.biases)
+// console.log('weights')
+// console.log(n.weights)
+// console.log(sigmoid([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))

@@ -2,14 +2,8 @@
 
 let jStat = require('jstat').jStat
 let sprintf = require('sprintf').sprintf
-
-function sigmoid(z) {
-    if (typeof z === 'number') {
-        return 1/(1+Math.pow(Math.E, -z))
-    } else {
-        return z.map(sigmoid)
-    }
-}
+let random = require('./random')
+let math = require('./math')
 
 function printMatrix(m, label) {
     if (m instanceof jStat) {
@@ -99,7 +93,7 @@ class Network {
             let b = this.biases[i]
             let w = this.weights[i]
             let wa = jStat.multiply(w, a)
-            a = jStat(wa).add(b).alter(el => sigmoid(el))
+            a = jStat(wa).add(b).alter(el => math.sigmoid(el))
             console.log(printMatrix(a, 'a = '))
             console.log()
         }
@@ -114,4 +108,4 @@ n.feedforward([[2], [3]])
 // console.log(n.biases)
 // console.log('weights')
 // console.log(n.weights)
-// console.log(sigmoid([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+// console.log(math.sigmoid([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))

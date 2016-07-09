@@ -44,6 +44,9 @@ function arrayToMatrix(arr, type) {
 
 class Network {
 
+    /**
+     * @param sizes - Array of layer sizes
+     */
     constructor(sizes) {
         this.sizes = sizes
 
@@ -81,6 +84,11 @@ class Network {
         })
     }
 
+    /**
+     * @param Vector a - Input to the network. Should ideally be a column
+     * vector of the form [ [a1], [a2], ..., [aN] ], but the function will
+     * handle row vectors [ a1, a2, ..., aN ] too.
+     */
     feedforward(a) {
         if (!isMatrix(a)) {
             // Convert a to a column vector
@@ -100,10 +108,101 @@ class Network {
 
         return a
     }
+
+    /**
+     * @param opts.epochs - number
+     * @param opts.trainingData - A list of tuples [x, y]
+     * @param opts.miniBatchSize - number
+     * @param opts.eta - number learning rate
+     */
+    sgd(opts) {
+        for (let i = 0; i < opts.epochs; i++) {
+            // In-place shuffle
+            random.shuffle(opts.trainingData)
+            let miniBatches = []
+            for (let k = 0; k < opts.trainingData.length; k += opts.miniBatchSize) {
+                console.log(`sgd pushing miniBatch between indices ${k}, ${k + opts.miniBatchSize}`)
+                miniBatches.push(opts.trainingData.slice(k, k + opts.miniBatchSize))
+            }
+
+            miniBatches.forEach(batch => this.updateMiniBatch(batch, opts.eta))
+
+            if (opts.testData) {
+                console.log(`Epoch ${i}: ${this.evaluate(opts.testData)} / ${opts.testData.length}`)
+            } else {
+                console.log(`Epoch ${i} complete`)
+            }
+        }
+    }
+
+    backprop(x, y) {
+        let deltaNablaB = 1
+        let deltaNablaW = 2
+        return { deltaNablaB, deltaNablaW }
+    }
+
+    /**
+     * @param batch Array of [x, y] pairs
+     */
+    updateMiniBatch(batch, eta) {
+        // Update the network's weights and biases by applying
+        // gradient descent using backpropagation to a single mini batch.
+        // The "miniBatch" is a list of tuples "(x, y)", and "eta"
+        // is the learning rate.
+        console.log('updateMiniBatch batch length', batch.length)
+
+        //           [np.zeros(b.shape) for b in self.biases]
+        let nablaB = this.biases.map(bias => jStat.zeros(bias.length, bias[0].length))
+        //           [np.zeros(w.shape) for w in self.weights]
+        let nablaW = this.weights.map(weight => jStat.zeros(weight.length, weight[0].length))
+
+        for (let i = 0; i < batch.length; i++) {
+            let x = batch[i][0]
+            let y = batch[i][1]
+            // console.log(printMatrix(x, 'x = '))
+            // console.log(printMatrix(y, 'y = '))
+
+            let {deltaNablaB, deltaNablaW} = this.backprop(x, y)
+            //       [nb+dnb for nb, dnb in zip(nablaB, deltaNablaB)]
+            nablaB = deltaNablaB.map((_, i) => nablaB[i] + deltaNablaB[i])
+            // nablaW = [nw+dnw for nw, dnw in zip(nablaW, deltaNablaW)]
+            nablaW = deltaNablaW.map((_, i) => nablaW[i] + deltaNablaW[i])
+        }
+
+        // this.weights = [w-(eta/len(miniBatch))*nw for w, nw in zip(self.weights, nablaW)]
+        this.weights = this.weights.map((_, i) => this.weights[i]-(opts.eta/miniBatch.length)*nablaW[i])
+        // this.biases = [b-(eta/len(miniBatch))*nb for b, nb in zip(self.biases, nablaB)]
+        this.biases = this.biases.map((_, i) => this.biases[i]-(opts.eta/lminiBatch.length)*nablaB[i])
+    }
 }
 
 let n = new Network([2, 3, 4, 2])
-n.feedforward([[2], [3]])
+// n.feedforward([[2], [3]])
+
+n.sgd({
+    epochs: 3,
+    miniBatchSize: 5,
+    eta: 0.9,
+    trainingData: [
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
+        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ]
+    ]
+})
+
 // console.log('biases')
 // console.log(n.biases)
 // console.log('weights')

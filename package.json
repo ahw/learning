@@ -6,7 +6,9 @@
   "dependencies": {
     "box-muller": "^0.0.1",
     "jstat": "^1.5.3",
-    "mathjs": "^3.3.0"
+    "lodash": "^4.13.1",
+    "mathjs": "^3.3.0",
+    "mnist": "^1.0.2"
   },
   "devDependencies": {
     "eslint": "^3.0.1",

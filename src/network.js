@@ -1,13 +1,21 @@
 'use strict'
 
 let jStat = require('jstat').jStat
+let Matrix = require('./matrix')
 let sprintf = require('sprintf').sprintf
 let random = require('./random')
 let math = require('./math')
+let mathjs = require('mathjs')
+let mnist = require('mnist')
+let _ = require('lodash')
 
 function printMatrix(m, label) {
     if (m instanceof jStat) {
         m = Array.prototype.slice.call(m)
+    }
+
+    if (m instanceof mathjs.type.Matrix) {
+        m = m._data
     }
 
     label = label || ""
@@ -34,9 +42,9 @@ function arrayToMatrix(arr, type) {
     // whether the result should look like a column vector or a row vector.
     type = type || 'column'
     if (type === 'column') {
-        return arr.map(e => [e])
+        return Matrix.create(arr.length, 1, (i, j) => arr[i])
     } else if (type === 'row') {
-        return [arr]
+        return Matrix.create(1, arr.length, (i, j) => arr[j])
     } else {
         throw new Error(`Unknown matrix type ${type}`)
     }
@@ -59,7 +67,7 @@ class Network {
         // jStat.rand(rows, cols) creates a matrix of the given row and
         // column dimensions where each element is pulled from the Normal
         // distribution.
-        this.biases = this.sizes.slice(1).map(layerSize => jStat.rand(layerSize, 1))
+        this.biases = this.sizes.slice(1).map(layerSize => Matrix.rand(layerSize, 1))
 
         // weights is an array of weight matrices. There is one weight
         // matrix "between" each layer. For a given weight matrix
@@ -80,8 +88,11 @@ class Network {
         // See comment above regarding jStat.rand()
         this.weights = this.sizes.slice(0, -1).map((xLayerSize, i) => {
             let yLayerSize = this.sizes[i + 1]
-            return jStat.rand(yLayerSize, xLayerSize)
+            return Matrix.rand(yLayerSize, xLayerSize)
         })
+
+        // this.biases.forEach(biasMatrix => console.log(biasMatrix.toString('bias = ')))
+        // this.weights.forEach(weightMatrix => console.log(weightMatrix.toString('weight = ')))
     }
 
     /**
@@ -100,13 +111,13 @@ class Network {
             console.log(`${printMatrix(this.weights[i], 'w = ')}\n${printMatrix(a, 'x = ')}\n${printMatrix(this.biases[i], 'b = ')}`)
             let b = this.biases[i]
             let w = this.weights[i]
-            let wa = jStat.multiply(w, a)
-            a = jStat(wa).add(b).alter(el => math.sigmoid(el))
-            console.log(printMatrix(a, 'a = '))
+            let wa = w.multiplyMatrix(a)
+            a = wa.elementWiseAdd(b).elementWiseOp(el => math.sigmoid(el))
+            console.log(a.toString('a = '))
             console.log()
         }
 
-        return a
+        return jStat(a)
     }
 
     /**
@@ -136,13 +147,25 @@ class Network {
     }
 
     backprop(x, y) {
-        let deltaNablaB = 1
-        let deltaNablaW = 2
-        return { deltaNablaB, deltaNablaW }
+        let biasPartials = this.biases.map(b => {
+            let [rows, cols] = b.size()
+            return Matrix.randInt(rows, cols)
+        })
+
+
+        let weightPartials = this.weights.map(w => {
+            let [rows, cols] = w.size()
+            return Matrix.randInt(rows, cols)
+        })
+
+        // biasPartials.forEach((biasPartial, i) => console.log(biasPartial.toString(`biasPartial ${i} = `)))
+        // weightPartials.forEach((weightPartial, i) => console.log(weightPartial.toString(`weightPartial ${i} = `)))
+        return { biasPartials, weightPartials }
     }
 
     /**
-     * @param batch Array of [x, y] pairs
+     * @param batch Array of [x, y] pairs where x and y are column vectors
+     * (2-D arrays)
      */
     updateMiniBatch(batch, eta) {
         // Update the network's weights and biases by applying
@@ -151,10 +174,14 @@ class Network {
         // is the learning rate.
         console.log('updateMiniBatch batch length', batch.length)
 
-        //           [np.zeros(b.shape) for b in self.biases]
-        let nablaB = this.biases.map(bias => jStat.zeros(bias.length, bias[0].length))
-        //           [np.zeros(w.shape) for w in self.weights]
-        let nablaW = this.weights.map(weight => jStat.zeros(weight.length, weight[0].length))
+        // Initialize ∇b and ∇w to be vectors of zeroes. We will iterate
+        // over all [x, y] pairs in the batch and average the ∂C/∂b and
+        // ∂C/∂w_ij values returned from the back propagation algorithm.
+
+        // ∇b = [ [0], [0], ..., [0] ]
+        let nablaB = this.biases.map(bias => Matrix.zeros(bias.size()[0], bias.size()[1]))
+        // ∇w = [ [0], [0], ..., [0] ]
+        let nablaW = this.weights.map(weight => Matrix.zeros(weight.size()[0], weight.size()[1]))
 
         for (let i = 0; i < batch.length; i++) {
             let x = batch[i][0]
@@ -162,44 +189,105 @@ class Network {
             // console.log(printMatrix(x, 'x = '))
             // console.log(printMatrix(y, 'y = '))
 
-            let {deltaNablaB, deltaNablaW} = this.backprop(x, y)
-            //       [nb+dnb for nb, dnb in zip(nablaB, deltaNablaB)]
-            nablaB = deltaNablaB.map((_, i) => nablaB[i] + deltaNablaB[i])
-            // nablaW = [nw+dnw for nw, dnw in zip(nablaW, deltaNablaW)]
-            nablaW = deltaNablaW.map((_, i) => nablaW[i] + deltaNablaW[i])
+            let { biasPartials, weightPartials } = this.backprop(x, y)
+
+            // Add to the total ∂C/∂b accumulated so far
+            nablaB = nablaB.map((_, i) => {
+                let biasPartial = biasPartials[i]
+                // let totalSoFar = nablaB[i]
+                // console.log(`Element-wise adding bias partial ${i} and current total`)
+                // console.log(biasPartial.toString(`biasPartial ${i} = `))
+                // console.log(nablaB[i].toString(`totalSoFar ${i} = `))
+                return nablaB[i].elementWiseAdd(biasPartial, { inplace: true })
+            })
+
+            // Add to the total ∂C/∂w_ij accumulated so far
+            nablaW = nablaW.map((_, i) => {
+                let weightPartial = weightPartials[i]
+                // let totalSoFar = nablaW[i]
+                // console.log(`Element-wise adding weight partial ${i} and current total`)
+                console.log(weightPartial.toString(`weightPartial ${i} = `))
+                // console.log(totalSoFar.toString(`totalSoFar ${i} = `))
+                return nablaW[i].elementWiseAdd(weightPartial, { inplace: true })
+            })
         }
 
-        // this.weights = [w-(eta/len(miniBatch))*nw for w, nw in zip(self.weights, nablaW)]
-        this.weights = this.weights.map((_, i) => this.weights[i]-(opts.eta/miniBatch.length)*nablaW[i])
+        nablaB.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
+        nablaW.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
+
+        // Update the biases by averaging the ∂C/∂b values from above
         // this.biases = [b-(eta/len(miniBatch))*nb for b, nb in zip(self.biases, nablaB)]
-        this.biases = this.biases.map((_, i) => this.biases[i]-(opts.eta/lminiBatch.length)*nablaB[i])
+        nablaB = nablaB.map(totalBias => totalBias.scalarMultiply(eta/batch.length))
+        // nablaB.forEach((nabla, i) => console.log(nabla.toString(`averaged ∇b ${i} = `)))
+        this.biases = this.biases.map((bias, i) => bias.elementWiseSubtract(nablaB[i]))
+
+        // Update the weights by averaging the ∂C/∂w_jk values from above
+        // this.weights = [w-(eta/len(miniBatch))*nw for w, nw in zip(self.weights, nablaW)]
+        nablaW = nablaW.map(totalWeight => totalWeight.scalarMultiply(eta/batch.length))
+        // nablaW.forEach((nabla, i) => console.log(nabla.toString(`averaged ∇w ${i} = `)))
+        this.weights = this.weights.map((weight, i) => weight.elementWiseSubtract(nablaW[i]))
+    }
+
+    /**
+     * Return the number of test inputs for which the neural network outputs
+     * the correct result. Note that the neural network's output is assumed
+     * to be the index of whichever neuron in the final layer has the
+     * highest activation.
+     *
+     * @param testData Array of [x, a] tuples where x is the input, and a is
+     * the actual expected output
+     */
+    evaluate(testData) {
+        // let testResults = [(np.argmax(self.feedforward(x)), y) for (x, y) in test_data]
+        let testResults = testData.map(tuple => {
+            let x = tuple[0]
+            let a = tuple[1]
+            return [this.feedforward(x), a]
+        })
+        
+        let totalCorrect = testResults.reduce((prev, current) => {
+            let [y, a] = current
+            let isEqual = _.isEqual(_.flatten(y), _.flatten(a))
+            return prev += (isEqual ? 1 : 0)
+        }, 0)
+
+        return totalCorrect
+    }
+
+    /**
+     * Return the vector of partial derivatives `del C_x / del a` for the
+     * output activations.
+     */
+    costDerivative(outputActivations, y) {
+        return jStat.subtract(outputActivations, y)
     }
 }
 
 let n = new Network([2, 3, 4, 2])
+// let n = new Network([784, 100, 10])
 // n.feedforward([[2], [3]])
 
 n.sgd({
-    epochs: 3,
-    miniBatchSize: 5,
-    eta: 0.9,
+    epochs: 30,
+    miniBatchSize: 10,
+    eta: 1.0,
     trainingData: [
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ],
-        [ /*x*/ jStat.rand(100, 1), /*y*/ random.getRandomOutputVector(10) ]
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ]
     ]
 })
 

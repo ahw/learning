@@ -1,24 +1,45 @@
 body {
     counter-reset:equation-counter;
+}
+
+h1, h2, h3 {
     font-family:Arial;
+    font-weight:lighter;
+}
+
+h1 {
+    font-size:2rem;
+    text-align:center;
+    font-family:serif;
+}
+
+h2 {
+    font-size:1.25rem;
+}
+
+h3 {
+    font-size:0.9375rem;
 }
 
 .eq {
     text-align:center;
     text-align:left;
     margin-left:4em;
+    padding-left:10px;
 }
 
 .eq.numbered {
     counter-increment: equation-counter;
     color:black;
-    background:#FFFCC0;
+    /* background:#FFFCC0; */
+    border: 2px solid #0087ff;
     padding:10px;
 }
 
 .eq.numbered:after {
     content: "(" counter(equation-counter) ")";
-    margin-left: 2em;
+    position: absolute;
+    right: 2em;
 }
 
 @media screen and (max-width: 500px) {

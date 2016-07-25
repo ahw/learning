@@ -2,6 +2,7 @@
 <html>
 <head>
 <link href="cheat-sheet.css" rel="stylesheet" type="text/css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
 <h1>Sigmoid Function</h1>
@@ -21,12 +22,12 @@ The sigmoid function is useful because it's like a smoothed out step function. A
 <p class="eq numbered">`= sigma(x) * (1 - sigma(x))`</p>
 
 <h1>Digit Classification</h1>
-Input is a 28 x 28 = 728-dimensional vector `vec x`.<br>
-Output is 10-dimensional vector `vec y`.
+Input is a 28 x 28 = 728-dimensional vector `x`.<br>
+Output is 10-dimensional vector `y`.
 
 <h2>Cost function</h2>
-We need a cost function that describes how far off a certain set of weights and biases for our output neurons `vec y` are. For now, define this as
-<p class="eq numbered">`C(vec w, b) = 1/(2n) sum_(vec x) ||vec y(vec x) - vec a||^2`</p>
+We need a cost function that describes how far off a certain set of weights and biases for our output neurons `y` are. For now, define this as
+<p class="eq numbered">`C(w, b) = 1/(2n) sum_(x) ||y(x) - a||^2`</p>
 
 <h2>Minimization</h2>
 How do we minimize the cost function `C`? Well, suppose we generalize `C` as a function of many variables: `C(v_1, v_2, ..., v_n)`. Calculus tells us that changes in `C`, `Delta C`, can be approximated by taking the partial derivative of `C` with respect to each variable, multiplying by the amount that variable changed, and adding them up.
@@ -68,7 +69,119 @@ It is important that `eta` be a value small enough to still make the approximiat
     `Delta C ~~ grad C * Delta v`
 </p>
 
-<script
-src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"></script>
+<h1>Back to Reality: How To Actually Compute The Cost Gradient</h1>
+<p>We will need 4 equations:
+<ol>
+    <li>Equation for the error in the output layer `del^L`</li>
+    <li>Equation for the error `del^l` in terms of the error in the next layer `del^(l+1)`</li>
+    <li>An equation for the rate of change of the cost with respect to any bias in the network</li>
+    <li>An equation for the rate of change of the cost with respect to any weight in the network</li>
+</ol>
+</p>
+<h2>Equation for the Error in the Output Layer `del^L`</h2>
+Our definition of the error in neuron `j` in output layer `L`:
+<p class="eq numbered">`del_j^L -= (del C)/(del z_j^L)`</p>
+
+Since `C` is a function of `a_1, a_2, ..., a_j, ..., a_n`, we'll have to use
+the Chain Rule to compute `(del C)/(del z_j^L)`. For the rest of the
+section, I'll be dropping the `L` superscript in order to keep the notation
+cleaner, but keep in mind that terms like `a_i`, `z_i`, `y_i` will all be
+referring to neurons only in the outpuer layer `L`.
+
+<p class="eq">`C = f(a_1, ..., a_n) = 1/2 sum_i(y_i - a_i)^2`</p>
+<p class="eq">`a_i = sigma(sum_k w_(ik)^(l)a_k^(l-1) + b_i^l) = sigma(z_i)`</p>
+
+<p>
+In the second equation defining the function `a_i`,  I'm purposely 
+using the `i` subscript to indicate that the all the `a_1, a_2, ...` terms
+have the same form, and each of them of course only depend on their own `z_i` terms.
+This should not be surprising, but it will be important in the application of the Chain Rule, as it will
+allow us to zero out all `del a_i//del z_j` terms where `i != j` since
+`z_j` in those cases has no effect on `a_i`.</p>
+
+<p>
+It will be useful to figure out `del C // del a_j` ahead of time:
+</p>
+
+<p class="eq">`(del C)/(del a_j) = del / (del a_j)(1/2 sum_i(y_i - a_i)^2)`</p>
+<p class="eq">`= del / (del a_j)(1/2 (y_1 - a_1)^2)
+    + cdots
+    + del / (del a_j)(1/2 (y_j - a_j)^2)
+    + cdots
+    + del / (del a_j)(1/2 (y_n - a_n)^2)`</p>
+<p class="eq">`= 0
+    + cdots
+    + del / (del a_j)(1/2 (y_j - a_j)^2)
+    + cdots
+    + 0`</p>
+
+<p class="eq">`= 1/2 * del / (del a_j)(y_j^2 - 2y_ja_j + a_j^2)`</p>
+<p class="eq">`= 1/2 (-2y_j + 2a_j)`</p>
+<p class="eq">`= a_j - y_j`</p>
+<p class="eq numbered">`(del C)/(del a_j) = a_j - y_j`</p>
+
+We can use this result to compute `(del C)/(del z_j) via the Chain Rule.
+
+<p class="eq">`(del C)/(del z_j) = (del C)/(del a_1)(del a_1)/(del z_j)
++ cdots + (del C)/(del a_j)(del a_j)/(del z_j)
++ cdots + (del C)/(del a_n)(del a_n)/(del z_j)`</p>
+<p class="eq">`= 0
++ cdots + (del C)/(del a_j)(del a_j)/(del z_j)
++ cdots + 0`</p>
+<p class="eq">` = (a_j - y_j) * sigma'(z_j)`</p>
+
+This is the error for one neuron `j` in the output layer. We can
+"vectorize" this pretty easily. The same derivation above would of course
+apply similarly to all neurons in the output layer, giving us the following
+"vectorized" form of the error `delta^L` of the output layer. I'll add the
+`L` superscripts back in to be explicit. Also note we're using the `o.`
+operator to indicate the Hadamard product (element-wise multiplication).
+
+<p class="eq numbered">`delta^L = (a^L - y) o. sigma'(z^L)`</p>
+
+<h2>Equation for the error `del^l` in terms of the error in the next layer `del^(l+1)`</h2>
+<p>The Chain Rule will be used heavily in the derivation of this equation.
+Recall that the Chain Rule tells us how to take the partial derivative of
+functions which are themselves composed other other functions.</p>
+
+<p class="eq">
+</p>
+<p class="eq"></p>
+
+
+<!--
+<p class="eq">
+$$
+\begin{align}
+A & = B \\
+& = C
+\end{align}
+$$
+</p>
+-->
+
+<!-- Uncomment to serve MathJax remotely -->
+<!-- <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"></script> -->
+
+<!-- Comment out to serve MathJax locally during development -->
+<!-- <script src="MathJax-2.6-latest/MathJax.js?config=AM_CHTML"></script> -->
+<script src="MathJax-2.6-latest/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+<!-- <script src="MathJax-2.6-latest/MathJax.js?config=TeX-MML-AM_CHTML"></script> -->
+<script>
+    // MathJax.Hub.signal.Interest(message => console.log('Hub:', message))
+    MathJax.Hub.Register.MessageHook('End Process', message => {
+        window.scrollTo(0, document.body.clientHeight)
+        // setTimeout(window.location.reload.bind(window.location), 30000)
+    })
+
+    // Fixes weird scaling issue.
+    // See http://stackoverflow.com/questions/9347045/mathjax-on-iphone-with-device-width-yields-image-fonts
+    MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready', function () {
+        let HTMLCSS = MathJax.OutputJax['HTML-CSS']
+        HTMLCSS.Font.testSize = ['10px','12px','15px','9px','8px']
+        document.getElementById('MathJax_Font_Test').style.fontSize = '10px'
+    })
+</script>
+
 </body>
 </html>

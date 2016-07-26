@@ -181,7 +181,7 @@ class Network {
         // ∇b = [ [0], [0], ..., [0] ]
         let biasPartialsSum = this.biases.map(bias => Matrix.zeros(bias.size()[0], bias.size()[1]))
         // ∇w = [ [0], [0], ..., [0] ]
-        let nablaW = this.weights.map(weight => Matrix.zeros(weight.size()[0], weight.size()[1]))
+        let weightPartialsSum = this.weights.map(weight => Matrix.zeros(weight.size()[0], weight.size()[1]))
 
         for (let i = 0; i < batch.length; i++) {
             let x = batch[i][0]
@@ -190,22 +190,23 @@ class Network {
             // console.log(printMatrix(y, 'y = '))
 
             let { biasPartials, weightPartials } = this.backprop(x, y)
+            console.log(`${biasPartials[0].toString('∇b 0 = ')}`)
 
             // Add to the total ∂C/∂b accumulated so far
-            _.zip(biasPartialsSum, biasPartials).forEach((tuple) => {
+            _.zip(biasPartialsSum, biasPartials).forEach(tuple => {
                 let [biasSum, biasPartial] = tuple
                 biasSum.elementWiseAdd(biasPartial, { inplace: true })
             })
 
             // Add to the total ∂C/∂w_ij accumulated so far
-            nablaW = nablaW.map((_, i) => {
-                let weightPartial = weightPartials[i]
-                return nablaW[i].elementWiseAdd(weightPartial, { inplace: true })
+            _.zip(weightPartialsSum, weightPartials).forEach(tuple => {
+                let [weightSum, weightPartial] = tuple
+                weightSum.elementWiseAdd(weightPartial, { inplace: true })
             })
         }
 
         biasPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
-        nablaW.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
+        weightPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
 
         // Update the biases by averaging the ∂C/∂b values from above
         // this.biases = [b-(eta/len(miniBatch))*nb for b, nb in zip(self.biases, nablaB)]
@@ -215,7 +216,7 @@ class Network {
 
         // Update the weights by averaging the ∂C/∂w_jk values from above
         // this.weights = [w-(eta/len(miniBatch))*nw for w, nw in zip(self.weights, nablaW)]
-        nablaW = nablaW.map(totalWeight => totalWeight.scalarMultiply(eta/batch.length))
+        let nablaW = weightPartialsSum.map(totalWeight => totalWeight.scalarMultiply(eta/batch.length))
         // nablaW.forEach((nabla, i) => console.log(nabla.toString(`averaged ∇w ${i} = `)))
         this.weights = this.weights.map((weight, i) => weight.elementWiseSubtract(nablaW[i]))
     }

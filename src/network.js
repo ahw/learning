@@ -176,14 +176,44 @@ class Network {
             let z = weight.multiplyMatrix(activation).elementWiseAdd(bias) // z is a vector
             console.log(z.toString('z = '))
             zs.push(z)
-            activation = z.elementWiseOp(math.sigmoid)
+            activation = z.elementWiseOp(math.sigmoid, { inplace: false })
             console.log(activation.toString('a (output) = '))
             // console.log(activation.toString('a = '))
             activations.push(activation)
         })
 
-        // Backward pass
-        let delta = this.costDerivative(activations[activations.length - 1], y).elementWiseMultiply(zs[zs.length - 1].elementWiseOp(math.sigmoidPrime))
+        // Backward pass.
+        //
+        //  δ = (a- y) ⨀ σ'(z)
+        //
+        // Where δ is a vector of errors for all neurons in the last layer
+        let delta = this.costDerivative(activations[activations.length - 1], y).elementWiseMultiply(zs[zs.length - 1].elementWiseOp(math.sigmoidPrime, { inplace: false }))
+
+        // The rate of change of the cost with respect to any neuron's bias
+        // in the network is equal to the error of that neuron.
+        biasPartials[biasPartials.length - 1] = delta
+
+        // The rate of change of the cost with respect to any neuron's set
+        // of weights in the network is given by
+        //
+        //  ∂C/∂w_jk = a_k * δ_j
+        //
+        // In matrix form, this is the same as δ * a^T
+        console.log(activations[activations.length - 2].transpose().toString('a (l-1) transpose = '))
+        console.log(delta.toString('delta = '))
+        weightPartials[weightPartials.length - 1] = delta.multiplyMatrix(activations[activations.length - 2].transpose())
+        console.log(weightPartials[weightPartials.length - 1].toString('∂C/∂w (L) = '))
+
+        // Go backwards. Start at second-to-last layer since we've already
+        // computed the cost derivative for the biases and weights in the
+        // last layer.
+        for (let l = this.sizes.length - 2; l >= 1; l--) {
+            let z = zs[l]
+            let sp = z.elementWiseOp(math.sigmoidPrime, { inplace: false })
+            let delta = this.weights[l+1].transpose().multiplyMatrix(delta).elementWiseMultiply(sp)
+            biasPartials[l] = delta
+            weightPartials[l] = delta.multiplyMatrix(activations[l - 1].transpose())
+        }
 
         // biasPartials.forEach((biasPartial, i) => console.log(biasPartial.toString(`biasPartial ${i} = `)))
         // weightPartials.forEach((weightPartial, i) => console.log(weightPartial.toString(`weightPartial ${i} = `)))

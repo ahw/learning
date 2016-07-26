@@ -47,6 +47,11 @@ class Matrix {
         return returnMatrix
     }
 
+    transpose() {
+        let [rows, cols] = this.size()
+        return Matrix.create(cols, rows, (i, j) => this._data[j][i])
+    }
+
     dot(vector) {
         if (vector.size()[0] !== this.size()[0] || vector.size()[1] !== this.size()[1]) {
             throw new Error('DimensionMismatchError')
@@ -81,13 +86,17 @@ class Matrix {
     }
 
     multiplyMatrix(matrix, options) {
+        console.log('multiplying matrices A and B')
+        console.log(this.toString('A = '))
+        console.log(matrix.toString('B = '))
+
         // MxN * NxP = MxP
         let result = Matrix.create(this._data.length, matrix._data[0].length)
         return result.elementWiseOp((value, i, j) => {
             let row = this._data[i]
             let col = matrix._data.map(row => row[j])
             return row.reduce((prev, curr, i) => prev + row[i]*col[i], 0)
-        })
+        }, { inplace: true })
     }
 
     elementWiseAdd(matrix, options) {
@@ -118,7 +127,7 @@ class Matrix {
                 return `${(i ? pad : label)} ${row} <-- warning: this is not a matrix`
             }
 
-            return (i ? pad : label) + '[ ' + row.map(e => sprintf('%0.03f', e)).join(', ') + ' ]'
+            return (i ? pad : label) + (i ? '  ' : '[ ') + '[ ' + row.map(e => sprintf('%0.03f', e)).join(', ') + ' ]' + (i === matrix.length - 1 ? ' ]' : ', ')
         }).join('\n') + '\n'
     }
 }
@@ -158,3 +167,7 @@ module.exports = Matrix
 // console.log(v)
 // let result = f.multiplyMatrix(v)
 // console.log(result)
+
+// let m = Matrix.rand(4, 2)
+// console.log(m.toString('original = '))
+// console.log(m.transpose().toString('transpose = '))

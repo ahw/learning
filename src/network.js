@@ -179,7 +179,7 @@ class Network {
         // ∂C/∂w_ij values returned from the back propagation algorithm.
 
         // ∇b = [ [0], [0], ..., [0] ]
-        let nablaB = this.biases.map(bias => Matrix.zeros(bias.size()[0], bias.size()[1]))
+        let biasPartialsSum = this.biases.map(bias => Matrix.zeros(bias.size()[0], bias.size()[1]))
         // ∇w = [ [0], [0], ..., [0] ]
         let nablaW = this.weights.map(weight => Matrix.zeros(weight.size()[0], weight.size()[1]))
 
@@ -192,9 +192,9 @@ class Network {
             let { biasPartials, weightPartials } = this.backprop(x, y)
 
             // Add to the total ∂C/∂b accumulated so far
-            nablaB = nablaB.map((_, i) => {
-                let biasPartial = biasPartials[i]
-                return nablaB[i].elementWiseAdd(biasPartial, { inplace: true })
+            _.zip(biasPartialsSum, biasPartials).forEach((tuple) => {
+                let [biasSum, biasPartial] = tuple
+                biasSum.elementWiseAdd(biasPartial, { inplace: true })
             })
 
             // Add to the total ∂C/∂w_ij accumulated so far
@@ -204,12 +204,12 @@ class Network {
             })
         }
 
-        nablaB.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
+        biasPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
         nablaW.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
 
         // Update the biases by averaging the ∂C/∂b values from above
         // this.biases = [b-(eta/len(miniBatch))*nb for b, nb in zip(self.biases, nablaB)]
-        nablaB = nablaB.map(totalBias => totalBias.scalarMultiply(eta/batch.length))
+        let nablaB = biasPartialsSum.map(totalBias => totalBias.scalarMultiply(eta/batch.length))
         // nablaB.forEach((nabla, i) => console.log(nabla.toString(`averaged ∇b ${i} = `)))
         this.biases = this.biases.map((bias, i) => bias.elementWiseSubtract(nablaB[i]))
 

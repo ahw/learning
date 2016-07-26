@@ -194,20 +194,12 @@ class Network {
             // Add to the total ∂C/∂b accumulated so far
             nablaB = nablaB.map((_, i) => {
                 let biasPartial = biasPartials[i]
-                // let totalSoFar = nablaB[i]
-                // console.log(`Element-wise adding bias partial ${i} and current total`)
-                // console.log(biasPartial.toString(`biasPartial ${i} = `))
-                // console.log(nablaB[i].toString(`totalSoFar ${i} = `))
                 return nablaB[i].elementWiseAdd(biasPartial, { inplace: true })
             })
 
             // Add to the total ∂C/∂w_ij accumulated so far
             nablaW = nablaW.map((_, i) => {
                 let weightPartial = weightPartials[i]
-                // let totalSoFar = nablaW[i]
-                // console.log(`Element-wise adding weight partial ${i} and current total`)
-                console.log(weightPartial.toString(`weightPartial ${i} = `))
-                // console.log(totalSoFar.toString(`totalSoFar ${i} = `))
                 return nablaW[i].elementWiseAdd(weightPartial, { inplace: true })
             })
         }

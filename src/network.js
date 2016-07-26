@@ -146,17 +146,44 @@ class Network {
         }
     }
 
+    /**
+     * Return a tuple (nabla_b, nabla_w) representing the gradient for the
+     * cost function C_x.  nabla_b and nabla_w are layer-by-layer lists of
+     * matrices, similar to this.biases and this.weights.
+     */
     backprop(x, y) {
+        console.log('x = ', x)
+        console.log('y = ', y)
         let biasPartials = this.biases.map(b => {
             let [rows, cols] = b.size()
-            return Matrix.randInt(rows, cols)
+            return Matrix.zeros(rows, cols)
         })
 
 
         let weightPartials = this.weights.map(w => {
             let [rows, cols] = w.size()
-            return Matrix.randInt(rows, cols)
+            return Matrix.zeros(rows, cols)
         })
+
+        // Feedforward
+        let activation = x
+        let activations = [x] // list to store all the activations, layer by layer
+        let zs = [] // list to store all the Z vectors, layer by layer
+        _.zip(this.biases, this.weights).forEach((tuple) => {
+            let [bias, weight] = tuple
+            console.log(weight.toString('w = '))
+            console.log(activation.toString('a (input) = '))
+            let z = weight.multiplyMatrix(activation).elementWiseAdd(bias) // z is a vector
+            console.log(z.toString('z = '))
+            zs.push(z)
+            activation = z.elementWiseOp(math.sigmoid)
+            console.log(activation.toString('a (output) = '))
+            // console.log(activation.toString('a = '))
+            activations.push(activation)
+        })
+
+        // Backward pass
+        let delta = this.costDerivative(activations[activations.length - 1], y).elementWiseMultiply(zs[zs.length - 1].elementWiseOp(math.sigmoidPrime))
 
         // biasPartials.forEach((biasPartial, i) => console.log(biasPartial.toString(`biasPartial ${i} = `)))
         // weightPartials.forEach((weightPartial, i) => console.log(weightPartial.toString(`weightPartial ${i} = `)))
@@ -252,7 +279,9 @@ class Network {
      * output activations.
      */
     costDerivative(outputActivations, y) {
-        return jStat.subtract(outputActivations, y)
+        console.log(outputActivations.toString('outputActivations = '))
+        console.log(y.toString('y = '))
+        return outputActivations.elementWiseSubtract(y)
     }
 }
 
@@ -265,22 +294,22 @@ n.sgd({
     miniBatchSize: 10,
     eta: 1.0,
     trainingData: [
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ],
-        [ /*x*/ Matrix.rand(2, 1), /*y*/ random.getRandomOutputVector(2) ]
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ],
+        [ /*x*/ Matrix.rand(2, 1), /*y*/ Matrix.rand(2, 1) ]
     ]
 })
 

@@ -1,6 +1,7 @@
 'use strict'
 
 let sprintf = require('sprintf').sprintf
+let _ = require('lodash')
 
 class Matrix {
     constructor(rows, cols, fn) {
@@ -44,6 +45,17 @@ class Matrix {
         }
         
         return returnMatrix
+    }
+
+    dot(vector) {
+        if (vector.size()[0] !== this.size()[0] || vector.size()[1] !== this.size()[1]) {
+            throw new Error('DimensionMismatchError')
+        }
+
+        return _.zip(this._data, vector._data).reduce((prev, curr) => {
+            // curr = [ [a1], [b1] ]
+            return prev + curr[0][0] * curr[1][0]
+        }, 0)
     }
 
     scalarAdd(n, options) {

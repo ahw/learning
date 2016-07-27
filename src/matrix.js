@@ -127,7 +127,7 @@ class Matrix {
                 return `${(i ? pad : label)} ${row} <-- warning: this is not a matrix`
             }
 
-            return (i ? pad : label) + (i ? '  ' : '[ ') + '[ ' + row.map(e => sprintf('%0.03f', e)).join(', ') + ' ]' + (i === matrix.length - 1 ? ' ]' : ', ')
+            return (i ? pad : label) + (i ? '  ' : '{ ') + '{ ' + row.map(e => sprintf('%0.03f', e)).join(', ') + ' }' + (i === matrix.length - 1 ? ' }' : ', ')
         }).join('\n') + '\n'
     }
 }

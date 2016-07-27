@@ -169,7 +169,7 @@ class Network {
         let activation = x
         let activations = [x] // list to store all the activations, layer by layer
         let zs = [] // list to store all the Z vectors, layer by layer
-        _.zip(this.biases, this.weights).forEach((tuple) => {
+        _.zip(this.biases, this.weights).forEach((tuple, i) => {
             let [bias, weight] = tuple
             console.log(weight.toString('w = '))
             console.log(activation.toString('a (input) = '))
@@ -207,12 +207,15 @@ class Network {
         // Go backwards. Start at second-to-last layer since we've already
         // computed the cost derivative for the biases and weights in the
         // last layer.
-        for (let l = this.sizes.length - 2; l >= 1; l--) {
+        for (let l = zs.length - 2; l >= 0; l--) {
             let z = zs[l]
             let sp = z.elementWiseOp(math.sigmoidPrime, { inplace: false })
-            let delta = this.weights[l+1].transpose().multiplyMatrix(delta).elementWiseMultiply(sp)
+            // console.log(this.weights[l].transpose().toString(`weights^T @ l = ${l} `))
+            // console.log(delta.toString(`delta @ l+1 (next layer)= ${l+1} `))
+            delta = this.weights[l+1].transpose().multiplyMatrix(delta).elementWiseMultiply(sp)
+            // console.log(delta.toString(`delta @ l = ${l} `))
             biasPartials[l] = delta
-            weightPartials[l] = delta.multiplyMatrix(activations[l - 1].transpose())
+            weightPartials[l] = delta.multiplyMatrix(activations[l].transpose())
         }
 
         // biasPartials.forEach((biasPartial, i) => console.log(biasPartial.toString(`biasPartial ${i} = `)))

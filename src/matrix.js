@@ -86,9 +86,9 @@ class Matrix {
     }
 
     multiplyMatrix(matrix, options) {
-        console.log('multiplying matrices A and B')
-        console.log(this.toString('A = '))
-        console.log(matrix.toString('B = '))
+        // console.log('multiplying matrices A and B')
+        // console.log(this.toString('A = '))
+        // console.log(matrix.toString('B = '))
 
         // MxN * NxP = MxP
         let result = Matrix.create(this._data.length, matrix._data[0].length)

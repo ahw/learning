@@ -63,10 +63,6 @@ class Network {
         // from index 1. biases[i] = [ [b1], [b2], ..., [bN] ], which is the
         // bias vector for layer i. The bias vector is a column vector which
         // is why it is an array of single-element arrays.
-        //
-        // jStat.rand(rows, cols) creates a matrix of the given row and
-        // column dimensions where each element is pulled from the Normal
-        // distribution.
         this.biases = this.sizes.slice(1).map(layerSize => Matrix.rand(layerSize, 1))
 
         // weights is an array of weight matrices. There is one weight
@@ -76,16 +72,14 @@ class Network {
         // neurons in the output "Y" layer. Example:
         //
         // weights[i] = [
-        //  [ w_x_0y_0, w_x_1y_0, w_x2_y0 ],
-        //  [ w_x_0y_1, w_x_1y_1, w_x2_y1 ],
-        //  [ w_x_0y_2, w_x_1y_2, w_x2_y2 ]
+        //  [ w_y_0x_0, w_y_1x_0, w_y2_x0 ],
+        //  [ w_y_0x_1, w_y_1x_1, w_y2_x1 ],
+        //  [ w_y_0x_2, w_y_1x_2, w_y2_x2 ]
         // ]
         //
-        // w_x2_y1 should be interpreted as, "the weight of the connection
-        // between neuron x2 in the X input layer and neuron y1 in the Y
-        // output layer."
-        //
-        // See comment above regarding jStat.rand()
+        // w_y2_x1 should be interpreted as, "the weight of the connection
+        // to neuron y2 in the Y output layer from neuron x1 in the X input
+        // layer."
         this.weights = this.sizes.slice(0, -1).map((xLayerSize, i) => {
             let yLayerSize = this.sizes[i + 1]
             return Matrix.rand(yLayerSize, xLayerSize)
@@ -171,16 +165,33 @@ class Network {
         let zs = [] // list to store all the Z vectors, layer by layer
         _.zip(this.biases, this.weights).forEach((tuple, i) => {
             let [bias, weight] = tuple
-            console.log(weight.toString('w = '))
-            console.log(activation.toString('a (input) = '))
+            console.log(weight.toString(`w @ ${i} = `))
+            console.log(activation.toString(`a (input) @ ${i} = `))
+            console.log(bias.toString(`bias @ ${i} = `))
             let z = weight.multiplyMatrix(activation).elementWiseAdd(bias) // z is a vector
-            console.log(z.toString('z = '))
+            console.log(z.toString(`z @ ${i} = `))
             zs.push(z)
             activation = z.elementWiseOp(math.sigmoid, { inplace: false })
-            console.log(activation.toString('a (output) = '))
+            console.log(activation.toString(`a (output) @ ${i+1} = `))
             // console.log(activation.toString('a = '))
             activations.push(activation)
         })
+
+
+        console.log('sizes length', this.sizes.length)
+        console.log('activations length', activations.length)
+        console.log('biasPartials length', biasPartials.length)
+        console.log('weightPartials length', weightPartials.length)
+        console.log('Zs length', zs.length)
+
+        // console.log('activations ---')
+        // activations.forEach((a, i) => console.log(a.toString(`a ${i} = `)))
+        // console.log('zs ---')
+        // zs.forEach((m, i) => console.log(m.toString(`z ${i} = `)))
+        // console.log('weight partials ---')
+        // weightPartials.forEach((m, i) => console.log(m.toString(`weighPartial ${i} = `)))
+        // console.log('bias partials ---')
+        // biasPartials.forEach((m, i) => console.log(m.toString(`biasPartial ${i} = `)))
 
         // Backward pass.
         //
@@ -188,6 +199,7 @@ class Network {
         //
         // Where δ is a vector of errors for all neurons in the last layer
         let delta = this.costDerivative(activations[activations.length - 1], y).elementWiseMultiply(zs[zs.length - 1].elementWiseOp(math.sigmoidPrime, { inplace: false }))
+        console.log(delta.toString('delta @ L = '))
 
         // The rate of change of the cost with respect to any neuron's bias
         // in the network is equal to the error of that neuron.
@@ -199,16 +211,16 @@ class Network {
         //  ∂C/∂w_jk = a_k * δ_j
         //
         // In matrix form, this is the same as δ * a^T
-        console.log(activations[activations.length - 2].transpose().toString('a (l-1) transpose = '))
-        console.log(delta.toString('delta = '))
+        // console.log(activations[activations.length - 1].transpose().toString(`a transpose @ L = `))
         weightPartials[weightPartials.length - 1] = delta.multiplyMatrix(activations[activations.length - 2].transpose())
-        console.log(weightPartials[weightPartials.length - 1].toString('∂C/∂w (L) = '))
+        // console.log(weightPartials[weightPartials.length - 1].toString(`weightPartials @ L = `))
 
         // Go backwards. Start at second-to-last layer since we've already
         // computed the cost derivative for the biases and weights in the
         // last layer.
         for (let l = zs.length - 2; l >= 0; l--) {
             let z = zs[l]
+            // console.log(z.toString(`z @ l = ${l-1} `))
             let sp = z.elementWiseOp(math.sigmoidPrime, { inplace: false })
             // console.log(this.weights[l].transpose().toString(`weights^T @ l = ${l} `))
             // console.log(delta.toString(`delta @ l+1 (next layer)= ${l+1} `))
@@ -250,7 +262,7 @@ class Network {
             // console.log(printMatrix(y, 'y = '))
 
             let { biasPartials, weightPartials } = this.backprop(x, y)
-            console.log(`${biasPartials[0].toString('∇b 0 = ')}`)
+            // console.log(`${biasPartials[0].toString('∇b 0 = ')}`)
 
             // Add to the total ∂C/∂b accumulated so far
             _.zip(biasPartialsSum, biasPartials).forEach(tuple => {
@@ -265,8 +277,8 @@ class Network {
             })
         }
 
-        biasPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
-        weightPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
+        // biasPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
+        // weightPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
 
         // Update the biases by averaging the ∂C/∂b values from above
         // this.biases = [b-(eta/len(miniBatch))*nb for b, nb in zip(self.biases, nablaB)]
@@ -311,10 +323,10 @@ class Network {
      * Return the vector of partial derivatives `del C_x / del a` for the
      * output activations.
      */
-    costDerivative(outputActivations, y) {
-        console.log(outputActivations.toString('outputActivations = '))
-        console.log(y.toString('y = '))
-        return outputActivations.elementWiseSubtract(y)
+    costDerivative(a, y) {
+        // console.log(a.toString('output activation a = '))
+        // console.log(y.toString('y = '))
+        return a.elementWiseSubtract(y)
     }
 }
 

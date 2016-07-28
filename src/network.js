@@ -64,9 +64,6 @@ class Network {
             let yLayerSize = this.sizes[i + 1]
             return Matrix.rand(yLayerSize, xLayerSize)
         })
-
-        // this.biases.forEach(biasMatrix => console.log(biasMatrix.toString('bias = ')))
-        // this.weights.forEach(weightMatrix => console.log(weightMatrix.toString('weight = ')))
     }
 
     /**
@@ -81,8 +78,6 @@ class Network {
         // }
 
         for (let i = 0; i < this.sizes.length - 1; i++) {
-            // console.log(`Iteration ${i+1}`)
-            // console.log(`${printMatrix(this.weights[i], 'w = ')}\n${printMatrix(a, 'x = ')}\n${printMatrix(this.biases[i], 'b = ')}`)
             let b = this.biases[i]
             let w = this.weights[i]
             let wa = w.multiplyMatrix(a)
@@ -104,7 +99,6 @@ class Network {
             random.shuffle(opts.trainingData)
             let miniBatches = []
             for (let k = 0; k < opts.trainingData.length; k += opts.miniBatchSize) {
-                // console.log(`sgd pushing miniBatch between indices ${k}, ${k + opts.miniBatchSize}`)
                 miniBatches.push(opts.trainingData.slice(k, k + opts.miniBatchSize))
             }
 
@@ -124,8 +118,6 @@ class Network {
      * matrices, similar to this.biases and this.weights.
      */
     backprop(x, y) {
-        // console.log('x = ', x)
-        // console.log('y = ', y)
         let biasPartials = this.biases.map(b => {
             let [rows, cols] = b.size()
             return Matrix.zeros(rows, cols)
@@ -143,33 +135,11 @@ class Network {
         let zs = [] // list to store all the Z vectors, layer by layer
         _.zip(this.biases, this.weights).forEach((tuple, i) => {
             let [bias, weight] = tuple
-            // console.log(weight.toString(`w @ ${i} = `))
-            // console.log(activation.toString(`a (input) @ ${i} = `))
-            // console.log(bias.toString(`bias @ ${i} = `))
             let z = weight.multiplyMatrix(activation).elementWiseAdd(bias) // z is a vector
-            // console.log(z.toString(`z @ ${i} = `))
             zs.push(z)
             activation = z.elementWiseOp(math.sigmoid, { inplace: false })
-            // console.log(activation.toString(`a (output) @ ${i+1} = `))
-            // console.log(activation.toString('a = '))
             activations.push(activation)
         })
-
-
-        // console.log('sizes length', this.sizes.length)
-        // console.log('activations length', activations.length)
-        // console.log('biasPartials length', biasPartials.length)
-        // console.log('weightPartials length', weightPartials.length)
-        // console.log('Zs length', zs.length)
-
-        // console.log('activations ---')
-        // activations.forEach((a, i) => console.log(a.toString(`a ${i} = `)))
-        // console.log('zs ---')
-        // zs.forEach((m, i) => console.log(m.toString(`z ${i} = `)))
-        // console.log('weight partials ---')
-        // weightPartials.forEach((m, i) => console.log(m.toString(`weighPartial ${i} = `)))
-        // console.log('bias partials ---')
-        // biasPartials.forEach((m, i) => console.log(m.toString(`biasPartial ${i} = `)))
 
         // Backward pass.
         //
@@ -177,7 +147,6 @@ class Network {
         //
         // Where δ is a vector of errors for all neurons in the last layer
         let delta = this.costDerivative(activations[activations.length - 1], y).elementWiseMultiply(zs[zs.length - 1].elementWiseOp(math.sigmoidPrime, { inplace: false }))
-        // console.log(delta.toString('delta @ L = '))
 
         // The rate of change of the cost with respect to any neuron's bias
         // in the network is equal to the error of that neuron.
@@ -189,27 +158,19 @@ class Network {
         //  ∂C/∂w_jk = a_k * δ_j
         //
         // In matrix form, this is the same as δ * a^T
-        // console.log(activations[activations.length - 1].transpose().toString(`a transpose @ L = `))
         weightPartials[weightPartials.length - 1] = delta.multiplyMatrix(activations[activations.length - 2].transpose())
-        // console.log(weightPartials[weightPartials.length - 1].toString(`weightPartials @ L = `))
 
         // Go backwards. Start at second-to-last layer since we've already
         // computed the cost derivative for the biases and weights in the
         // last layer.
         for (let l = zs.length - 2; l >= 0; l--) {
             let z = zs[l]
-            // console.log(z.toString(`z @ l = ${l-1} `))
             let sp = z.elementWiseOp(math.sigmoidPrime, { inplace: false })
-            // console.log(this.weights[l].transpose().toString(`weights^T @ l = ${l} `))
-            // console.log(delta.toString(`delta @ l+1 (next layer)= ${l+1} `))
             delta = this.weights[l+1].transpose().multiplyMatrix(delta).elementWiseMultiply(sp)
-            // console.log(delta.toString(`delta @ l = ${l} `))
             biasPartials[l] = delta
             weightPartials[l] = delta.multiplyMatrix(activations[l].transpose())
         }
 
-        // biasPartials.forEach((biasPartial, i) => console.log(biasPartial.toString(`biasPartial ${i} = `)))
-        // weightPartials.forEach((weightPartial, i) => console.log(weightPartial.toString(`weightPartial ${i} = `)))
         return { biasPartials, weightPartials }
     }
 
@@ -222,7 +183,6 @@ class Network {
         // gradient descent using backpropagation to a single mini batch.
         // The "miniBatch" is a list of tuples "(x, y)", and "eta"
         // is the learning rate.
-        // console.log('updateMiniBatch batch length', batch.length)
 
         // Initialize ∇b and ∇w to be vectors of zeroes. We will iterate
         // over all [x, y] pairs in the batch and average the ∂C/∂b and
@@ -236,12 +196,8 @@ class Network {
         for (let i = 0; i < batch.length; i++) {
             let x = batch[i][0]
             let y = batch[i][1]
-            // console.log(printMatrix(x, 'x = '))
-            // console.log(printMatrix(y, 'y = '))
 
             let { biasPartials, weightPartials } = this.backprop(x, y)
-            // console.log(weightPartials[0].toString('weight partial 1 ='))
-            // console.log(`${biasPartials[0].toString('∇b 0 = ')}`)
 
             // Add to the total ∂C/∂b accumulated so far
             _.zip(biasPartialsSum, biasPartials).forEach(tuple => {
@@ -256,19 +212,14 @@ class Network {
             })
         }
 
-        // biasPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇b ${i} = `)))
-        // weightPartialsSum.forEach((nabla, i) => console.log(nabla.toString(`accumulated ∇w ${i} = `)))
-
         // Update the biases by averaging the ∂C/∂b values from above
         // this.biases = [b-(eta/len(miniBatch))*nb for b, nb in zip(self.biases, nablaB)]
         let nablaB = biasPartialsSum.map(totalBias => totalBias.scalarMultiply(eta/batch.length))
-        // nablaB.forEach((nabla, i) => console.log(nabla.toString(`averaged ∇b ${i} = `)))
         this.biases = this.biases.map((bias, i) => bias.elementWiseSubtract(nablaB[i]))
 
         // Update the weights by averaging the ∂C/∂w_jk values from above
         // this.weights = [w-(eta/len(miniBatch))*nw for w, nw in zip(self.weights, nablaW)]
         let nablaW = weightPartialsSum.map(totalWeight => totalWeight.scalarMultiply(eta/batch.length))
-        // nablaW.forEach((nabla, i) => console.log(nabla.toString(`averaged ∇w ${i} = `)))
         this.weights = this.weights.map((weight, i) => weight.elementWiseSubtract(nablaW[i]))
     }
 
@@ -288,16 +239,11 @@ class Network {
             return [this.feedforward(x), a]
         })
         
-        // console.log('test results', testResults[0][0].toString('test input x = '))
-        // console.log('test results', testResults[0][1].toString('test input a = '))
         let totalCorrect = testResults.reduce((prev, current) => {
             let [y, a] = current
-            // console.log('y = ', y)
-            // console.log('a = ', a)
             let yMax = y.max()
             let aMax = a.max()
             let isEqual = yMax.row === aMax.row && yMax.col === aMax.col
-            // console.log(`comparing ${yMax.row} and ${aMax.row}`)
             return prev += (isEqual ? 1 : 0)
         }, 0)
 
@@ -309,8 +255,6 @@ class Network {
      * output activations.
      */
     costDerivative(a, y) {
-        // console.log(a.toString('output activation a = '))
-        // console.log(y.toString('y = '))
         return a.elementWiseSubtract(y)
     }
 }
@@ -347,9 +291,3 @@ n.sgd({
     trainingData,
     testData
 })
-
-// console.log('biases')
-// console.log(n.biases)
-// console.log('weights')
-// console.log(n.weights)
-// console.log(math.sigmoid([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))

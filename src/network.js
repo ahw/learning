@@ -1,11 +1,8 @@
 'use strict'
 
-let jStat = require('jstat').jStat
 let Matrix = require('./matrix')
-let sprintf = require('sprintf').sprintf
 let random = require('./random')
 let math = require('./math')
-let mathjs = require('mathjs')
 let mnist = require('mnist')
 let _ = require('lodash')
 

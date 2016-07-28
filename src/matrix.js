@@ -135,9 +135,12 @@ class Matrix {
         return { value, row, col }
     }
 
-    toString(label) {
+    toString(label, rowDelimiter) {
         let matrix = this._data
-        const rowDelimiter = '\n'
+        if (typeof rowDelimiter === 'undefined') {
+            rowDelimiter = '\n'
+        }
+
         label = label || ""
         let pad = '' // label.split("").map(s => ' ').join("")
         return matrix.map((row, i) => {
@@ -195,6 +198,6 @@ module.exports = Matrix
 // console.log(m.toString('original = '))
 // console.log(m.transpose().toString('transpose = '))
 
-let m = Matrix.randInt(20, 1, { lo: 0, hi: 50 })
-console.log(m.toString('m = '))
-console.log(m.max())
+// let m = Matrix.randInt(20, 1, { lo: 0, hi: 50 })
+// console.log(m.toString('m = '))
+// console.log(m.max())

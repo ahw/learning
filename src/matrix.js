@@ -118,17 +118,35 @@ class Matrix {
         }, options)
     }
 
+    max() {
+        let value = -Infinity
+        let row = undefined
+        let col = undefined
+        for (let j = 0; j < this._data.length; j++) {
+            for (let k = 0; k < this._data[j].length; k++) {
+                if (this._data[j][k] > value) {
+                    value = this._data[j][k]
+                    row = j
+                    col = k
+                }
+            }
+        }
+
+        return { value, row, col }
+    }
+
     toString(label) {
         let matrix = this._data
+        const rowDelimiter = '\n'
         label = label || ""
-        let pad = label.split("").map(s => ' ').join("")
+        let pad = '' // label.split("").map(s => ' ').join("")
         return matrix.map((row, i) => {
             if (!Array.isArray(row)) {
                 return `${(i ? pad : label)} ${row} <-- warning: this is not a matrix`
             }
 
             return (i ? pad : label) + (i ? '  ' : '{ ') + '{ ' + row.map(e => sprintf('%0.03f', e)).join(', ') + ' }' + (i === matrix.length - 1 ? ' }' : ', ')
-        }).join('\n') + '\n'
+        }).join(rowDelimiter) + ''
     }
 }
 
@@ -143,7 +161,12 @@ Matrix.reverseCreate = function(fn, rows, cols) {
 Matrix.ones = Matrix.reverseCreate.bind(null, () => 1)
 Matrix.zeros = Matrix.reverseCreate.bind(null, () => 0)
 Matrix.rand = Matrix.reverseCreate.bind(null, () => Math.random())
-Matrix.randInt = Matrix.reverseCreate.bind(null, () => Math.floor(Math.random() * 10))
+Matrix.randInt = function(rows, cols, options) {
+    options = Object.assign({ lo: 0, hi: 9 }, options)
+    return Matrix.create(rows, cols, () => {
+        return Math.floor(options.lo + (options.hi - options.lo + 1) * Math.random())
+    })
+}
 
 module.exports = Matrix
 // console.log(Matrix.create(4, 1).toString())
@@ -171,3 +194,7 @@ module.exports = Matrix
 // let m = Matrix.rand(4, 2)
 // console.log(m.toString('original = '))
 // console.log(m.transpose().toString('transpose = '))
+
+let m = Matrix.randInt(20, 1, { lo: 0, hi: 50 })
+console.log(m.toString('m = '))
+console.log(m.max())

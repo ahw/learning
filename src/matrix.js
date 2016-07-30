@@ -125,15 +125,29 @@ class Matrix {
         for (let j = 0; j < this._data.length; j++) {
             for (let k = 0; k < this._data[j].length; k++) {
                 if (this._data[j][k] > value) {
-                    value = this._data[j][k]
                     row = j
                     col = k
+                    value = this._data[j][k]
                 }
             }
         }
 
-        return { value, row, col }
+        return { row, col, value }
     }
+
+    median() {
+        let elements = []
+        // _.sortBy(_.flatten(this._data))
+        for (let j = 0; j < this._data.length; j++) {
+            for (let k = 0; k < this._data[j].length; k++) {
+                elements.push({row: j, col: k, value: this._data[j][k]})
+            }
+        }
+
+        elements = _.sortBy(elements, item => item.value)
+        return elements[Math.floor(elements.length/2)]
+    }
+
 
     toString(label, rowDelimiter) {
         let matrix = this._data

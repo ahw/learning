@@ -215,3 +215,4 @@ module.exports = Matrix
 // let m = Matrix.randInt(20, 1, { lo: 0, hi: 50 })
 // console.log(m.toString('m = '))
 // console.log(m.max())
+// console.log(m.median())

@@ -3,31 +3,10 @@
 let Matrix = require('./matrix')
 let random = require('./random')
 let math = require('./math')
-let mnist = require('mnist')
+// let mnist = require('mnist')
 let _ = require('lodash')
 
-function isMatrix(m) {
-    // Returns true if m is an array and it's first element is also an
-    // array. It would be more thorough to do something like m.every(e =>
-    // Array.isArray(e)) but this will probably be faster and just as good
-    // in practice.
-    return Array.isArray(m) && Array.isArray(m[0])
-}
-
-function arrayToMatrix(arr, type) {
-    // Converts a simple array to a matrix. The "type" argument describes
-    // whether the result should look like a column vector or a row vector.
-    type = type || 'column'
-    if (type === 'column') {
-        return Matrix.create(arr.length, 1, (i, j) => arr[i])
-    } else if (type === 'row') {
-        return Matrix.create(1, arr.length, (i, j) => arr[j])
-    } else {
-        throw new Error(`Unknown matrix type ${type}`)
-    }
-}
-
-class Network {
+export default class Network {
 
     /**
      * @param sizes - Array of layer sizes
@@ -64,16 +43,11 @@ class Network {
     }
 
     /**
-     * @param Vector a - Input to the network. Should ideally be a column
-     * vector of the form [ [a1], [a2], ..., [aN] ], but the function will
-     * handle row vectors [ a1, a2, ..., aN ] too.
+     * @param Vector a - Input to the network. Should ideally be a Matrix of
+     * the form [ [a1], [a2], ..., [aN] ], but the function will handle row
+     * vectors [ a1, a2, ..., aN ] too.
      */
     feedforward(a) {
-        // if (!isMatrix(a)) {
-        //     // Convert a to a column vector
-        //     a = arrayToMatrix(a, 'column')
-        // }
-
         for (let i = 0; i < this.sizes.length - 1; i++) {
             let b = this.biases[i]
             let w = this.weights[i]
@@ -255,36 +229,3 @@ class Network {
         return a.elementWiseSubtract(y)
     }
 }
-
-let n = new Network([10, 10])
-// let n = new Network([784, 100, 10])
-// n.feedforward([[2], [3]])
-
-
-function createData(length) {
-    return Array.from({ length }).map(() => {
-        let m = Matrix.rand(10, 1, { lo: 0, hi: 100 })
-
-        let max = m.max()
-        let n = Matrix.create(10, 1, (i, j) => {
-            if (i === max.row && j === max.col) {
-                return 1
-            } else {
-                return 0
-            }
-        })
-
-        return [m, n]
-    })
-}
-
-let trainingData = createData(5000)
-let testData = createData(20)
-
-n.sgd({
-    epochs: 100,
-    miniBatchSize: 20,
-    eta: 5.0,
-    trainingData,
-    testData
-})

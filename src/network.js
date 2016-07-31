@@ -79,7 +79,7 @@ export default class Network {
             // miniBatches.forEach(batch => this.updateMiniBatch(batch, opts.eta))
             let miniBatchUpdates = miniBatches.map((batch, batchIndex) => {
                 return (miniBatchDone) => {
-                    console.log(`Updating new mini batch ${batchIndex} after ${MINI_BATCH_INTERVAL}ms`)
+                    // console.log(`Updating new mini batch ${batchIndex} after ${MINI_BATCH_INTERVAL}ms`)
                     setTimeout(() => {
                         this.updateMiniBatch(batch, opts.eta)
                         miniBatchDone()

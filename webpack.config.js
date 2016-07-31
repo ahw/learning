@@ -4,16 +4,16 @@ let path = require('path')
 const webpack = require('webpack')
 
 module.exports = {
-    entry: './src/main.js',
+    entry: './src/app.jsx',
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'main.js',
+        filename: 'app.js',
         // publicPath: 'https://localhost:8082/'
         publicPath: '/xx-assets-xx/'
     },
     module: {
         loaders: [{
-            test: /\.js$/,
+            test: /\.jsx?$/,
             exclude: /node_modules/,
             loader: 'babel-loader'
         }]

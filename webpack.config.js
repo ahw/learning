@@ -1,11 +1,15 @@
+'use strict'
+
+let path = require('path')
 const webpack = require('webpack')
 
 module.exports = {
     entry: './src/main.js',
     output: {
-        path: './dist',
+        path: path.resolve(__dirname, 'dist'),
         filename: 'main.js',
-        publicPath: 'https://localhost:8082/'
+        // publicPath: 'https://localhost:8082/'
+        publicPath: '/xx-assets-xx/'
     },
     module: {
         loaders: [{

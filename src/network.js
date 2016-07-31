@@ -5,6 +5,9 @@ let random = require('./random')
 let math = require('./math')
 // let mnist = require('mnist')
 let _ = require('lodash')
+let async = require('async')
+
+const MINI_BATCH_INTERVAL = 2
 
 export default class Network {
 
@@ -65,7 +68,7 @@ export default class Network {
      * @param opts.eta - number learning rate
      */
     sgd(opts) {
-        for (let i = 0; i < opts.epochs; i++) {
+        let trainEpoch = (epochIndex, epochDone) => {
             // In-place shuffle
             random.shuffle(opts.trainingData)
             let miniBatches = []
@@ -73,14 +76,32 @@ export default class Network {
                 miniBatches.push(opts.trainingData.slice(k, k + opts.miniBatchSize))
             }
 
-            miniBatches.forEach(batch => this.updateMiniBatch(batch, opts.eta))
+            // miniBatches.forEach(batch => this.updateMiniBatch(batch, opts.eta))
+            let miniBatchUpdates = miniBatches.map((batch, batchIndex) => {
+                return (miniBatchDone) => {
+                    console.log(`Updating new mini batch ${batchIndex} after ${MINI_BATCH_INTERVAL}ms`)
+                    setTimeout(() => {
+                        this.updateMiniBatch(batch, opts.eta)
+                        miniBatchDone()
+                    }, MINI_BATCH_INTERVAL)
+                }
+            })
 
-            if (opts.testData) {
-                console.log(`Epoch ${i}: ${this.evaluate(opts.testData)} / ${opts.testData.length}`)
-            } else {
-                console.log(`Epoch ${i} complete`)
-            }
+            async.series(miniBatchUpdates, () => {
+                console.log(`Finished ${miniBatches.length} mini batch updates`)
+
+                if (opts.testData) {
+                    console.log(`Epoch ${epochIndex}: ${this.evaluate(opts.testData)} / ${opts.testData.length}`)
+                } else {
+                    console.log(`Epoch ${epochIndex} complete`)
+                }
+
+                epochDone()
+            })
         }
+
+        let epochUpdates = Array.from({ length: opts.epochs }).map((_, i) => trainEpoch.bind(this, i))
+        async.series(epochUpdates)
     }
 
     /**

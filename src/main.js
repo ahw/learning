@@ -1,6 +1,7 @@
 import Network from './network'
 import Matrix from './matrix'
 
+console.log('This is main.js')
 let n = new Network([10, 10, 10])
 // let n = new Network([784, 100, 10])
 // n.feedforward([[2], [3]])
@@ -28,7 +29,7 @@ let trainingData = createData(5000)
 let testData = createData(20)
 
 n.sgd({
-    epochs: 100,
+    epochs: 10,
     miniBatchSize: 20,
     eta: 5.0,
     trainingData,
